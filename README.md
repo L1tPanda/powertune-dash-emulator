@@ -5,6 +5,9 @@ on a Windows PC, fed by a fake Motorsport Electronics ME442 and a fake GPS, so p
 changes can be tested without the car. Unofficial; not affiliated with PowerTune Digital or
 Motorsport Electronics. GPL-3, like the PowerTune source it patches.
 
+> **No warranty - use at your own risk.** For testing only; it doesn't prove behaviour on a real dash
+> or ECU. Credits to the PowerTune authors and the full warning: [NOTICE.md](NOTICE.md).
+
 ```
 .\run-emulator.ps1                 # dash + fake ECU at idle   (Ctrl+C stops the data; close the window to quit)
 .\run-emulator.ps1 -Mode sweep     # RPM sweeps 900-8000, everything follows
