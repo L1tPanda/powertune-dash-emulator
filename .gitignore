@@ -1,0 +1,7 @@
+# PowerTune source copy and build output (get the source from GitHub - see README)
+src/
+build/
+# logs, test screenshots, python cache
+*.log
+*.png
+__pycache__/

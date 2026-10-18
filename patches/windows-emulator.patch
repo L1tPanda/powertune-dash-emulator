@@ -1,0 +1,85 @@
+diff --git a/main.cpp b/main.cpp
+index 1aacd81..7cde7e0 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -11,6 +11,9 @@
+ #include <QDebug>
+ #include <QDateTime>
+ #include <cstdio>
++#include <QSettings>
++#include <QDir>
++#include <QFontDatabase>
+ 
+     ioMapData mpd;
+ 
+@@ -21,6 +24,24 @@ int main(int argc, char *argv[])
+     app.setOrganizationName("Power-Tune");
+     app.setOrganizationDomain("power-tune.org");
+     app.setApplicationName("PowerTune");
++#ifdef Q_OS_WIN
++    // EMULATOR: keep settings as .ini files like the dash's ~/.config/*.conf (not the registry),
++    // so the dash's real PowerTune.conf can be copied in, and load the dash's fonts from
++    // C:/PowerTune/fonts because they are installed system-wide on the dash.
++    QSettings::setDefaultFormat(QSettings::IniFormat);
++    for (const QFileInfo &f : QDir(ptBasePath() + "/fonts").entryInfoList({"*.ttf", "*.TTF", "*.otf"}, QDir::Files))
++        QFontDatabase::addApplicationFont(f.absoluteFilePath());
++    {   // EMULATOR: record which settings file is used, to C:/PowerTune/emulator.log
++        QSettings s;
++        QFile log(ptBasePath() + "/emulator.log");
++        if (log.open(QIODevice::WriteOnly | QIODevice::Text)) {
++            QTextStream(&log) << QDateTime::currentDateTime().toString(Qt::ISODate)
++                              << " settings=" << s.fileName() << " status=" << s.status()
++                              << " keys=" << s.allKeys().size()
++                              << " dashselect1=" << s.value("dashselect1").toString() << "\n";
++        }
++    }
++#endif
+     QQmlApplicationEngine engine;
+     qmlRegisterType<ioMapData>("IMD", 1, 0, "IMD");
+     qmlRegisterType<DownloadManager>("DLM", 1, 0, "DLM");
+diff --git a/main.qml b/main.qml
+index 009d9ab..a41e454 100644
+--- a/main.qml
++++ b/main.qml
+@@ -21,8 +21,9 @@ ApplicationWindow {
+ 
+     //width: 1600
+     //height: 720
+-    width: Screen.desktopAvailableWidth
+-    height: Screen.desktopAvailableHeight
++    // EMULATOR: on Windows open at the dash's own 800x480 instead of filling the monitor
++    width: Qt.platform.os === "windows" ? 800 : Screen.desktopAvailableWidth
++    height: Qt.platform.os === "windows" ? 480 : Screen.desktopAvailableHeight
+     minimumWidth: 800
+     minimumHeight: 480
+     title: qsTr("PowerTune ") + Dashboard.Platform
+diff --git a/appsettings.cpp b/appsettings.cpp
+index 7e719ff..388de88 100644
+--- a/appsettings.cpp
++++ b/appsettings.cpp
+@@ -112,15 +112,23 @@ void AppSettings::setLogging(const int &arg)
+     setValue("serial/Logging", arg);
+ }
+ 
++// EMULATOR: QSettings(org, app) always uses the registry on Windows (setDefaultFormat doesn't
++// apply to that constructor), so name the INI format explicitly to read PowerTuneDash.ini like the dash.
++#ifdef Q_OS_WIN
++#define PT_DASH_SETTINGS QSettings::IniFormat, QSettings::UserScope, "PowerTuneQML", "PowerTuneDash"
++#else
++#define PT_DASH_SETTINGS "PowerTuneQML", "PowerTuneDash"
++#endif
++
+ void AppSettings::setValue(const QString &key, const QVariant &value)
+ {
+-    QSettings settings("PowerTuneQML", "PowerTuneDash", this);
++    QSettings settings(PT_DASH_SETTINGS, this);
+     settings.setValue(key, value);
+ }
+ 
+ QVariant AppSettings::getValue(const QString &key)
+ {
+-    QSettings settings("PowerTuneQML", "PowerTuneDash", this);
++    QSettings settings(PT_DASH_SETTINGS, this);
+     return settings.value(key);
+ }
+ void AppSettings::writeMainSettings()

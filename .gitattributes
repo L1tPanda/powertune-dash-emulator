@@ -1,0 +1,2 @@
+# Keep files byte-for-byte (the patch matches the PowerTune source, which uses CRLF)
+* -text
